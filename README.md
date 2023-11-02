@@ -19,11 +19,12 @@ int personasFelices
 Usar pascal case para escribirlas. Ejemplo:
 
 int EstaEsUnaFuncion()
+
 void GenerarNumero()
 
 ## Comentarios
 
-recomiendo usar vscode y descargar la extencion de code anchors
+recomiendo usar vscode y descargar la extencion de code anchors. 
 Hay que poner comentarios en cada funcion explicando lo que hace. (lo evaluan)
 
 
@@ -42,3 +43,6 @@ Todas seran declaradas al comienzo de el programa. Vamos a intentar tener la men
 
 ## normas del buen hablante y buen oyente
 
+mirar al otro cuando hablan
+no interrumpir
+no le hagas a los demas lo que no te gusta que te hagan a ti
