@@ -33,14 +33,6 @@ Hay que poner comentarios en cada funcion explicando lo que hace. (lo evaluan)
 Todas seran declaradas al comienzo de el programa. Vamos a intentar tener la menor cantidad de variables globales posibles.
 
 
-## Extras
-
-- No usar system() en lo posible. hay alternativas mucho mejores y compatibles para todos (yo)
-- no quiero ver codigo desastroso que me pongo triste :(
-- NO USAR RECURSIVIDAD. muy ineficiente y solo usarlo en extremadamente poco ocasiones.
-- todo el codigo sera escrito en la development branch. ASEGURENSE de que su codigo no rompa otro codigo antes de hacer commits.
-
-
 ## normas del buen hablante y buen oyente
 
 mirar al otro cuando hablan
