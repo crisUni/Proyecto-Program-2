@@ -1,0 +1,2426 @@
+#include <iostream>
+#include <string.h>
+#include <iomanip>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <ctime>   
+using namespace std;
+
+//Se declaran las estructuras con sus campos especificos
+
+struct detalles {
+	long long codigoProducto;
+	long long int cantidad;
+	long float precioUnitario;
+	long long int numeroFactura;
+	long long int numeroTienda;
+	detalles* prx;
+};
+
+struct factura {
+	long long int numeroFactura;
+	long long int numeroTienda;
+	string fechaFactura;
+	long long int cedulaCliente;
+	long long int totalFactura;
+	factura* prx;
+	detalles* det;
+};
+
+struct tienda {
+	long long numeroTienda;
+	string nombreTienda;
+	string direccionTienda;
+	string telefonoTienda;
+	tienda* prx;
+	factura* fact;
+};
+
+struct persona {
+	long long int cedula;
+	string nombrePersona;
+	string direccionPersona;
+	string telefonoPersona;
+	string fechaNacimiento;
+	persona* prx;
+};
+
+struct producto {
+	long long int codigo;
+	string descripcionProducto;
+	string pesoVolumen;
+	string unidad;
+	long long int precioVenta;
+	producto* prx;
+};
+
+//Procesos auxiliares para ordenar 
+
+void SwapInteger(int* a, int* b) { int c = *a; *a = *b; *b = c; }
+
+void SwapString(string* a, string* b) { string c = *a; *a = *b; *b = c; }
+
+void SwapLong(long long int* a, long long int* b) { long c = *a; *a = *b; *b = c; }
+
+void SwapFloat(float* a, float* b) { float c = *a; *a = *b; *b = c; }
+
+//Procesos auxiliares para la validacion de entrada de datos
+
+int ValidarInt(char numero[]) {
+	int digitos = strlen(numero), i;
+
+	for (i = 0; i < digitos; i++) {
+		if (!isdigit(numero[i])) {
+			return 0;
+		}
+		if (i > 4) { return 0; }
+	}
+	return 1;
+}
+
+
+int ValidarLong(char numero[]) {
+	int digitos = strlen(numero), i;
+	for (i = 0; i < digitos; i++){
+
+		if (!isdigit(numero[i])) { return 0; }
+
+		if (i > 11) { return 0; }
+	};
+	return 1;
+}
+
+int ValidarFloat(char numero[]) {
+	int digitos = strlen(numero), i;
+	for (i = 0; i < digitos; i++) {
+
+		if ((!isdigit(numero[i]))&& (numero[i]!= '.')) { return 0; }
+
+		if (i > 10) { return 0; }
+	}
+	return 1;
+}
+
+int ValidarCedula(long long int cedula, persona *per) {
+	persona* ax = per;
+	while (ax) {
+		if (ax->cedula == cedula) {
+			return 0;
+		}
+		ax = ax->prx;
+	}
+	return 1;
+}
+
+int ValidarCodigo(long long int codigo, producto* pro) {
+	producto* ax = pro;
+	while (ax) {
+		if (ax->codigo == codigo) {
+			return 0;
+		}
+		ax = ax->prx;
+	}
+	return 1;
+}
+
+int ValidarNumeroT(long long int numero, tienda* tien) {
+	tienda* ax = tien;
+	while (ax) {
+		if (ax->numeroTienda == numero) {
+			return 0;
+		}
+		ax = ax->prx;
+	}
+	return 1;
+}
+
+int ValidarFactura(long long int numero, factura* fact) {
+	if (!fact) {
+		return 1;
+	}
+	else {
+		factura* ax = new factura; ax = fact;
+		while (fact) {
+			if (fact->numeroFactura == numero) {
+				return 0;
+			}
+			fact = fact->prx;
+		}
+	}
+	return 1;
+}
+
+
+
+//Otros procesos auxiliares
+
+void Linea() {
+	cout << "\n\n";
+	for (int i = 0; i < 65; i++) {
+		cout << "=";
+	}
+	cout << "\n\n";
+}
+
+void Header() {
+	system("cls");
+	Linea();
+	cout << "\t SISTEMA DE CONTROL DE VENTAS \n";
+	Linea();
+}
+
+string ObtenerFecha() {
+	time_t rawtime;
+	time(&rawtime);
+	struct tm timeinfo;
+	localtime_s(&timeinfo, &rawtime);
+	std::string dateString = std::to_string(timeinfo.tm_year + 1900) + "-"
+		+ std::to_string(timeinfo.tm_mon + 1) + "-"
+		+ std::to_string(timeinfo.tm_mday);
+	return dateString;
+}
+
+
+tienda* ElegirTienda(tienda* tien, long long int numero) {
+	tienda* ax = tien;
+	while (ax) {
+		if (ax->numeroTienda == numero) {
+			return ax;
+		}
+		ax = ax->prx;
+	}
+}
+
+factura* ElegirFactura(tienda * tien, long long int numeroTienda, long long int numeroFactura) {
+	tienda *axt = new tienda;
+	factura* axf = new factura;
+	axt = ElegirTienda(tien, numeroTienda);
+	axf = axt->fact;
+	while (axf) {
+		if (axf->numeroFactura == numeroFactura) {
+			return axf;
+		}
+		axf = axf->prx;
+	}
+}
+
+long long int CreaFacturaAleatoria() {
+	int N = 0; long long int  M = 999999999;
+	long long int numero = rand() % (N - M + 1) + M;
+	return numero;
+}
+string IntroducirFechaManual() {
+	string dia, mes, anual, check, fecha;
+
+	int check2;
+	do {
+		do {
+			Header();
+			cout << "\t Introducir fecha ";
+			Linea();
+			cout << "Introduzca el mes(numero del 1 al 12)-> "; cin >> check;
+		} while (!ValidarInt(&check[0]));
+		check2 = stoi(check);
+	} while ((check2 < 1)||(check2 > 12));
+	mes = to_string(check2);
+	do {
+		do { 
+			Header();
+			cout << "\t Introducir fecha ";
+			Linea();
+			cout << "Introduzca el dia(numero del 1 al 31, el numero de dias debe ser congruente con el mes)-> "; cin >> check;
+		} while (!ValidarInt(&check[0]));
+		check2 = stoi(check);
+	} while (((check2 < 1) || (check2 > 31))||((mes == "2") && (check2 >28))||((((mes == "4") || (mes == "6") || (mes == "9") || (mes == "11")) && (check2 > 31))));
+	dia = to_string(check2);
+	do {
+		do {
+			Header();
+			cout << "\t Introducir fecha";
+			Linea();
+			cout << " Introduzca el a;o(solo se aceptan entre 2000 y 2024)-> "; cin >> check;
+		} while (!ValidarInt(&check[0]));
+		check2 = stoi(check);
+	} while ((check2 < 2000) || (check2 > 2024));
+	anual = to_string(check2);
+	fecha = anual + "-" + mes + "-" + dia;
+	return fecha;
+}
+
+
+long long int ObtenerPrecio(producto* pro, long long int codigo) {
+	if (pro) {
+		producto* ax = pro;
+		while (ax) {
+			if (ax->codigo == codigo) {
+				return ax->precioVenta;
+			}
+			ax = ax->prx;
+		}
+	}
+}
+//Insercion de datos:
+void InsertarPersona(persona** per, long long int cedula, string nombrePersona, string direccionPersona, string telefonoPersona, string fechaNacimiento) {
+	persona* ax = new persona; ax->cedula = cedula; ax->nombrePersona = nombrePersona; ax->direccionPersona = direccionPersona; ax->telefonoPersona = telefonoPersona; ax->fechaNacimiento = fechaNacimiento;
+	ax->prx = NULL;
+	if (!(*per)) {
+		*per = ax;
+	}
+	else {
+		ax->prx = *per;
+		*per = ax;
+	}
+}
+
+void AgregarProducto(producto** pro, long long int codigo, string descripcionProducto, string pesoVolumen, string unidad, long long int precioVenta) {
+	producto* ax = new producto; ax->codigo = codigo; ax->descripcionProducto = descripcionProducto; ax->pesoVolumen = pesoVolumen; ax->unidad = unidad; ax->precioVenta = precioVenta;
+	ax->prx = NULL;
+	if (*pro) {
+		ax->prx = *pro;
+		*pro = ax;
+	}
+	else {
+		*pro = ax;
+	}
+}
+
+void AgregarTienda(tienda** tien, long long int numeroTienda, string nombreTienda, string direccionTienda, string telefonoTienda) {
+	tienda* ax = new tienda; ax->numeroTienda = numeroTienda; ax->nombreTienda = nombreTienda; ax->direccionTienda = direccionTienda; ax->telefonoTienda = telefonoTienda;
+	ax->prx = NULL; ax->fact = NULL;
+	if (*tien) {
+		ax->prx = *tien;
+		*tien = ax;
+	}
+	else {
+		*tien = ax;
+	}
+}
+
+detalles * AgregarDetalles(detalles * det, long long int codigoProducto, long long int cantidad, long long int precioUnitario, long long int numeroFactura, long long int numeroTienda) {
+	detalles* ax = new detalles; ax->codigoProducto = codigoProducto; ax->cantidad = cantidad; ax->numeroFactura = numeroFactura; ax->numeroTienda = numeroTienda;
+	ax->precioUnitario = precioUnitario; ax->prx = NULL;
+
+	if (det==NULL) {
+		det = ax;
+	}
+	else {
+		ax->prx = det;
+		det = ax;
+	}
+
+	return ax;
+
+	
+}
+
+void CrearFactura(tienda** tien, factura** fact, detalles** det, long long int numeroFactura, long long int cedulaCliente, long long int total, string fecha) {
+	factura* ax = new factura;
+	ax->prx = nullptr; ax->det = *det; ax->numeroFactura = numeroFactura; ax->cedulaCliente = cedulaCliente; ax->fechaFactura = fecha; ax->totalFactura = total; ax->numeroTienda = (*tien)->numeroTienda;
+	if (!*fact) {
+		*fact = ax;
+	}
+	else {
+		ax->prx = *fact;
+		*fact = ax;
+	}
+}
+void ModificarNombrePersona(persona* per, long long int cedula, string nombrePersona) {
+	persona* ax = per;
+	while (ax) {
+		if (ax->cedula == cedula) {
+			ax->nombrePersona = nombrePersona;
+			break;
+		}
+		ax = ax->prx;
+	}
+}
+
+void ModificarDireccionPersona(persona* per, long long int cedula, string direccionPersona) {
+	persona* ax = per;
+	while (ax) {
+		if (ax->cedula == cedula) {
+			ax->direccionPersona = direccionPersona;
+			break;
+		}
+		ax = ax->prx;
+	}
+}
+
+void ModificarTelefonoPersona(persona* per, long long int cedula, string telefonoPersona) {
+	persona* ax = per;
+	while (ax) {
+		if (ax->cedula == cedula) {
+			ax->telefonoPersona = telefonoPersona;
+			break;
+		}
+		ax = ax->prx;
+	}
+}
+void ModificarNacimientoPersona(persona* per, long long int cedula, string nacimientoPersona) {
+	persona* ax = per;
+	while (ax) {
+		if (ax->cedula == cedula) {
+			ax->fechaNacimiento = nacimientoPersona;
+			break;
+		}
+		ax = ax->prx;
+	}
+}
+
+void OrdenarParaGuardar(persona* per) {
+	persona* ax1 = per, * ax2 = per;
+	while (ax1) {
+		ax2 = ax1->prx;
+		while (ax2) {
+			if (ax2->cedula < ax1->cedula) {
+				SwapLong(&ax2->cedula, &ax1->cedula);
+				SwapString(&ax2->telefonoPersona, &ax1->telefonoPersona);
+				SwapString(&ax2->nombrePersona, &ax1->nombrePersona);
+				SwapString(&ax2->direccionPersona, &ax1->direccionPersona);
+				SwapString(&ax2->fechaNacimiento, &ax1->fechaNacimiento);
+			}
+			ax2 = ax2->prx;
+		}
+		ax1 = ax1->prx;
+	}
+}
+
+void GuardarFactura(factura* p)
+{
+	if (!p)
+		return;
+	factura* ax = p;
+	string numero = to_string(ax->numeroTienda);
+	string nombrearchivo; nombrearchivo.append(numero); nombrearchivo.append("facturas.txt");
+	ofstream archivo(nombrearchivo);
+	while (ax)
+	{
+		archivo << ax->numeroFactura << ';' << ax->numeroTienda << ';' << ax->fechaFactura << ';' << ax->cedulaCliente << ';' << ax->totalFactura << endl;
+		if (ax->prx == nullptr) { break; }
+		ax = ax->prx;
+	}
+
+	archivo.close();
+}
+
+void GuardarDetalles(detalles* p)
+{
+	if (!p)
+		return;
+	detalles* ax = p;
+	string numero = to_string(ax->numeroFactura);
+	string nombrearchivo; nombrearchivo.append(numero); nombrearchivo.append("detalles.txt");
+	ofstream archivo(nombrearchivo);
+	while (ax)
+	{
+		archivo << ax->numeroFactura << ';' << ax->numeroTienda << ';' << ax->codigoProducto << ';' << ax->cantidad << ';' << ax->precioUnitario << endl;
+		if (ax->prx == nullptr) { break; }
+		ax = ax->prx;
+	}
+
+	archivo.close();
+}
+
+void GuardarPersona(persona* p)
+{
+	if (!p)
+		return;
+	persona* ax = p;
+	ofstream archivo("persona.txt");
+	while (ax)
+	{
+		archivo << ax->cedula << ';' << ax->nombrePersona << ';' << ax->direccionPersona << ';' << ax->telefonoPersona << ';' << ax->fechaNacimiento << endl;
+		ax = ax->prx;
+	}
+
+	archivo.close();
+}
+void GuardarProducto(producto* p)
+{
+	if (!p)
+		return;
+	producto* ax = p;
+	ofstream archivo("producto.txt");
+	while (ax)
+	{
+		archivo << ax->codigo << ';' << ax->descripcionProducto << ';' << ax->pesoVolumen << ';' << ax->unidad << ';' << ax->precioVenta << endl;
+		ax = ax->prx;
+	}
+
+	archivo.close();
+}
+
+void GuardarTienda2(tienda* tien) {
+	if (!tien)
+		return;
+	tienda* ax = tien;
+	factura* axf = new factura;
+	detalles* axd = new detalles; axd = NULL;
+	ofstream archivo("tienda.txt");
+	while (ax)
+	{
+		archivo << ax->numeroTienda << ';' << ax->nombreTienda << ';' << ax->direccionTienda << ';' << ax->telefonoTienda << ';' << endl;
+		ofstream archivo2("factura.txt");
+		if (ax->fact != NULL) {
+			axf = ax->fact;
+			while (axf) {
+				archivo2 << axf->cedulaCliente << ';' << axf->numeroFactura << ';' << axf->fechaFactura << ';' << ax->numeroTienda << ';' << axf->totalFactura << ';' << endl;
+				ofstream archivo3("detalle.txt");
+				if (ax->fact->det != NULL) {
+					axd = ax->fact->det;
+					while (axd->prx != nullptr) {
+						if (axd != NULL) {
+							archivo3 << axd->codigoProducto << ';' << axd->cantidad << ';' << axd->precioUnitario << ';' << ax->numeroTienda << ';' << axf->numeroFactura << ';' << endl;
+							axd = axd->prx;
+						}
+						else { break; }
+					}
+				}
+				archivo3.close();
+				if (axf->prx == nullptr) { break; }
+				axf = axf->prx;
+
+			}
+		}
+
+		archivo2.close();
+		ax = ax->prx;
+	}
+
+	archivo.close();
+}
+
+
+
+
+
+
+void InsertarFacturaEnTienda(tienda** tien, long long int numeroFactura, long long int numeroTienda, long long int cedualCliente, long long int total, string fechaFactura) {
+	factura* axf = new factura; axf->numeroFactura = numeroFactura, axf->numeroTienda = numeroTienda, axf->cedulaCliente = cedualCliente, axf->totalFactura = total, axf->fechaFactura = fechaFactura; axf->prx = nullptr;
+	if (!(*tien)->fact) {
+		(*tien)->fact = axf;
+	}
+	else {
+		axf->prx = (*tien)->fact;
+		(*tien)->fact = axf;
+	}
+
+}
+
+void AsociarFacturaTienda(tienda** tien, long long int cedulaCliente, long long int numeroFactura, string fechaFactura, long long int labeltienda, long long int total) {
+	factura* axf = new factura; axf->cedulaCliente = cedulaCliente; axf->numeroFactura = numeroFactura; axf->fechaFactura = fechaFactura; axf->prx = NULL; axf->totalFactura = total;
+	tienda* ax = new tienda; ax = *tien;
+	while (ax) {
+		if (ax->numeroTienda == labeltienda) {
+			if (*tien == NULL) {
+				(*tien)->fact = axf;
+			}
+			else {
+				axf->prx = (*tien)->fact;
+				(*tien)->fact = axf;
+			}
+			return;
+		}
+		ax = ax->prx;
+	}
+}
+
+void AsociarDetallesTienda(tienda** tien, long long int codigoProducto, long long int cantidad, long long int precioUnitario, long long int numeroTienda, long long int numeroFactura) {
+	detalles* axd = new detalles; axd->codigoProducto = codigoProducto; axd->cantidad = cantidad; axd->precioUnitario = precioUnitario;
+	tienda* ax = *tien; factura* axf = new factura;
+	while (ax) {
+		if (ax->numeroTienda == numeroTienda) {
+			axf = ax->fact;
+			while (axf) {
+				if (axf->numeroFactura == numeroFactura) {
+					if (axf->det == NULL) {
+						axf->det = axd;
+					}
+					else {
+						axd->prx = axf->det;
+						axf->det = axd;
+					}
+				}
+				axf = axf->prx;
+			}
+
+		}
+		ax = ax->prx;
+	}
+}
+
+void LeerTienda2(tienda** tien) {
+	std::ifstream archivo("tienda.txt");
+
+	if (!archivo.is_open()) {
+		std::cerr << "Error opening file tienda.txt" << std::endl;
+		return;
+	}
+
+	std::string linea;
+	while (getline(archivo, linea)) {
+		std::stringstream input_stringstream(linea);
+
+		// Declare valor for temporary string storage
+		std::string valor;
+
+		// Directly extract values into appropriate variables
+		long long int cedula;
+		std::string nombrePersona, direccionPersona, fechaNacimiento, telefonoPersona;
+
+		// Use std::getline with delimiters correctly
+		getline(input_stringstream, valor, ';');
+		cedula = stoll(valor);
+		getline(input_stringstream, nombrePersona, ';');
+		getline(input_stringstream, direccionPersona, ';');
+		getline(input_stringstream, telefonoPersona, ';');
+		getline(input_stringstream, fechaNacimiento);
+
+
+		AgregarTienda(tien, cedula, nombrePersona, direccionPersona, telefonoPersona);
+	}
+	archivo.close();
+
+	ifstream archivo2("factura.txt");
+
+	if (!archivo2.is_open()) {
+		std::cerr << "Error opening file tienda.txt" << std::endl;
+		return;
+	}
+	std::string linea3;
+	while (getline(archivo2, linea3)) {
+		std::stringstream input_stringstream(linea3);
+
+		// Declare valor for temporary string storage
+		std::string valor;
+
+		// Directly extract values into appropriate variables
+		long long int cedulacliente, numeroFactura, numeroTienda, total;
+		std::string fechafactura;
+
+		// Use std::getline with delimiters correctly
+		getline(input_stringstream, valor, ';');
+		cedulacliente = stoll(valor);
+		getline(input_stringstream, valor, ';');
+		numeroFactura = stoll(valor);
+		getline(input_stringstream, fechafactura, ';');
+		getline(input_stringstream, valor, ';');
+		numeroTienda = stoll(valor);
+		getline(input_stringstream, valor, ';');
+		total = stoll(valor);
+
+
+		AsociarFacturaTienda(tien, cedulacliente, numeroFactura, fechafactura, numeroTienda, total);
+	}
+	archivo2.close();
+
+	ifstream archivo3("detalles.txt");
+
+	if (!archivo3.is_open()) {
+		std::cerr << "Error opening file tienda.txt" << std::endl;
+		return;
+	}
+	std::string linea2;
+	while (getline(archivo3, linea2)) {
+		std::stringstream input_stringstream(linea2);
+
+		// Declare valor for temporary string storage
+		std::string valor;
+
+		// Directly extract values into appropriate variables
+		long long int codigoProducto, cantidad, precioUnitario, numeroTienda, numeroFactura;
+		std::string fechafactura;
+
+		// Use std::getline with delimiters correctly
+		getline(input_stringstream, valor, ';');
+		codigoProducto = stoll(valor);
+		getline(input_stringstream, valor, ';');
+		cantidad= stoll(valor);
+		getline(input_stringstream, valor, ';');
+		precioUnitario = stoll(valor);
+		getline(input_stringstream, valor, ';');
+		numeroTienda = stoll(valor);
+		getline(input_stringstream, valor, ';');
+		numeroFactura = stoll(valor);
+
+
+		AsociarDetallesTienda(tien, codigoProducto, cantidad, precioUnitario, numeroTienda, numeroFactura);
+	}
+	archivo3.close();
+
+}
+
+void InsertarDetalleEnFactura(factura** fact, long long int numeroFactura, long long int codigoProducto, long long int preciounitario, long long int cantidad, long long int numeroTienda) {
+	detalles* axd = new detalles; axd->numeroFactura = numeroFactura; axd->codigoProducto = codigoProducto; axd->precioUnitario = preciounitario; axd->cantidad = cantidad; axd->prx = nullptr;
+	if ((*fact)->det==nullptr) {
+		(*fact)->det = axd;
+	}
+	else {
+		axd->prx = (*fact)->det;
+		(*fact)->det = axd;
+	}
+}
+void LeerFacturas2(tienda** tien) {
+	string label, nombrearchivo;
+	tienda* ax = *tien;
+	while (ax) {
+		label = to_string(ax->numeroTienda);
+		nombrearchivo.append(label);
+		nombrearchivo.append("facturas.txt");
+		std::ifstream archivo(nombrearchivo);
+
+		if (!archivo.is_open()) {
+			std::cerr << "Error opening file factura.txt" << std::endl;
+			return;
+		}
+
+		std::string linea;
+		while (getline(archivo, linea)) {
+			std::stringstream input_stringstream(linea);
+
+			// Declare valor for temporary string storage
+			std::string valor;
+
+			// Directly extract values into appropriate variables
+			long long int numeroFactura, numeroTienda, cedulaCliente, totalFactura;
+			std::string fechaFactura;
+
+			// Use std::getline with delimiters correctly
+			getline(input_stringstream, valor, ';');
+			numeroFactura = stoll(valor);
+			getline(input_stringstream, valor, ';');
+			numeroTienda = stoll(valor);
+			getline(input_stringstream, fechaFactura, ';');
+			getline(input_stringstream, valor, ';');
+			cedulaCliente = stoll(valor);
+			getline(input_stringstream, valor, ';');
+			totalFactura = stoll(valor);
+
+
+			InsertarFacturaEnTienda(&ax, numeroFactura, numeroTienda, cedulaCliente, totalFactura, fechaFactura);
+
+		}
+
+		archivo.close();
+		ax = ax->prx;
+	}
+}
+
+void LeerDetalles(tienda** tien) {
+	std::ifstream archivo("detalles.txt");
+	tienda* selectedtien = new tienda;
+	if (!archivo.is_open()) {
+		std::cerr << "Error opening file factura.txt" << std::endl;
+		return;
+	}
+
+	std::string linea;
+	while (getline(archivo, linea)) {
+		std::stringstream input_stringstream(linea);
+
+		// Declare valor for temporary string storage
+		std::string valor;
+		factura* selectedfact = new factura;
+
+		// Directly extract values into appropriate variables
+		long long int numeroFactura, numeroTienda, codigoProducto, cantidad, precioUnitario;
+		std::string fechaFactura;
+
+		// Use std::getline with delimiters correctly
+		getline(input_stringstream, valor, ';');
+		numeroFactura = stoll(valor);
+		getline(input_stringstream, valor, ';');
+		numeroTienda = stoll(valor);
+		getline(input_stringstream, fechaFactura, ';');
+		getline(input_stringstream, valor, ';');
+		codigoProducto = stoll(valor);
+		getline(input_stringstream, valor, ';');
+		cantidad = stoll(valor);
+		getline(input_stringstream, valor, ';');
+		precioUnitario = stoll(valor);
+		selectedfact = ElegirFactura(*tien, numeroTienda, numeroFactura);
+
+		InsertarDetalleEnFactura(&selectedfact, numeroFactura, codigoProducto, precioUnitario, cantidad, numeroTienda);
+
+
+
+	}
+	archivo.close();
+}
+
+void LeerFactura(tienda **tien) {
+	if (*tien == nullptr) { return; }
+	std::ifstream archivo("factura.txt");
+	tienda* selectedtien = new tienda;
+	if (!archivo.is_open()) {
+		std::cerr << "Error opening file factura.txt" << std::endl;
+		return;
+	}
+
+	std::string linea;
+	while (getline(archivo, linea)) {
+		std::stringstream input_stringstream(linea);
+
+		// Declare valor for temporary string storage
+		std::string valor;
+
+		// Directly extract values into appropriate variables
+		long long int numeroFactura, numeroTienda, cedulaCliente, totalFactura;
+		std::string fechaFactura;
+
+		// Use std::getline with delimiters correctly
+		getline(input_stringstream, valor, ';');
+		numeroFactura = stoll(valor);
+		getline(input_stringstream, valor, ';');
+		numeroTienda = stoll(valor);
+		getline(input_stringstream, fechaFactura, ';');
+		getline(input_stringstream, valor, ';');
+		cedulaCliente = stoll(valor);
+		getline(input_stringstream, valor, ';');
+		totalFactura = stoll(valor);
+
+		selectedtien = ElegirTienda(*tien, numeroTienda);
+
+		InsertarFacturaEnTienda(&selectedtien, numeroFactura, numeroTienda, cedulaCliente, totalFactura, fechaFactura);
+
+
+			
+	}
+	archivo.close();
+}
+
+void LeerTienda(tienda** p) {
+	std::ifstream archivo("tienda.txt");
+
+	if (!archivo.is_open()) {
+		std::cerr << "Error opening file tienda.txt" << std::endl;
+		return;
+	}
+
+	std::string linea;
+	while (getline(archivo, linea)) {
+		std::stringstream input_stringstream(linea);
+
+		// Declare valor for temporary string storage
+		std::string valor;
+
+		// Directly extract values into appropriate variables
+		long long int cedula;
+		std::string nombrePersona, direccionPersona, fechaNacimiento, telefonoPersona;
+
+		// Use std::getline with delimiters correctly
+		getline(input_stringstream, valor, ';');
+		cedula = stoll(valor);
+		getline(input_stringstream, nombrePersona, ';');
+		getline(input_stringstream, direccionPersona, ';');
+		getline(input_stringstream, telefonoPersona, ';');
+		getline(input_stringstream, fechaNacimiento);
+
+
+		AgregarTienda(p, cedula, nombrePersona, direccionPersona, telefonoPersona);
+	}
+	archivo.close();
+}
+
+void LeerProducto(producto** p) {
+	std::ifstream archivo("producto.txt");
+
+	if (!archivo.is_open()) {
+		std::cerr << "Error opening file persona.txt" << std::endl;
+		return;
+	}
+
+	std::string linea;
+	while (getline(archivo, linea)) {
+		std::stringstream input_stringstream(linea);
+
+		// Declare valor for temporary string storage
+		std::string valor;
+
+		// Directly extract values into appropriate variables
+		long long int cedula, fechaNacimientoNum;
+		std::string nombrePersona, direccionPersona, fechaNacimiento, telefonoPersona;
+
+		// Use std::getline with delimiters correctly
+		getline(input_stringstream, valor, ';');
+		cedula = stoll(valor);
+		getline(input_stringstream, nombrePersona, ';');
+		getline(input_stringstream, direccionPersona, ';');
+		getline(input_stringstream, telefonoPersona, ';');
+		getline(input_stringstream, fechaNacimiento);
+		fechaNacimientoNum = stoll(fechaNacimiento);
+
+
+		AgregarProducto(p, cedula, nombrePersona, direccionPersona, telefonoPersona, fechaNacimientoNum);
+	}
+	archivo.close();
+}
+
+
+void LeerPersona(persona** p) {
+	std::ifstream archivo("persona.txt");
+
+	if (!archivo.is_open()) {
+		std::cerr << "Error opening file persona.txt" << std::endl;
+		return;
+	}
+
+	std::string linea;
+	while (getline(archivo, linea)) {
+		std::stringstream input_stringstream(linea);
+
+		// Declare valor for temporary string storage
+		std::string valor;
+
+		// Directly extract values into appropriate variables
+		long long int cedula;
+		std::string nombrePersona, direccionPersona, fechaNacimiento, telefonoPersona;
+
+		// Use std::getline with delimiters correctly
+		getline(input_stringstream, valor, ';');
+		cedula = stoll(valor);
+		getline(input_stringstream, nombrePersona, ';');
+		getline(input_stringstream, direccionPersona, ';');
+		getline(input_stringstream, telefonoPersona, ';');
+		getline(input_stringstream, fechaNacimiento);
+
+		
+		InsertarPersona(p, cedula, nombrePersona, direccionPersona, telefonoPersona, fechaNacimiento);
+	}
+	archivo.close();
+}
+
+
+
+void Mostrar(persona* per) {
+	persona* ax = per;
+	cout << setw(10) << left << "CEDULA"; cout << setw(35) << left << "NOMBRE"; cout << setw(25) << left << "DIRECCION"; cout << setw(25) << left << "NACIMEINTO"; cout << setw(25) << left << "TELEFONO";
+	while (ax) {
+		cout << "\n\n" <<  setw(10) << left << ax->cedula; cout << setw(35) << left << ax->nombrePersona; cout << setw(25) << left << ax->direccionPersona;
+		cout << setw(25) << left << ax->fechaNacimiento; cout << setw(25) << left << ax->telefonoPersona;
+		ax = ax->prx;
+	}
+	cout << "\n";
+	system("pause");
+}
+
+
+void MostrarPorCedula(persona* per) {
+	persona* ax1 = per, * ax2 = per;
+	while (ax1) {
+		ax2 = ax1->prx;
+		while (ax2) {
+			if (ax2->cedula < ax1->cedula) {
+				SwapLong(&ax2->cedula, &ax1->cedula);
+				SwapString(&ax2->telefonoPersona, &ax1->telefonoPersona);
+				SwapString(&ax2->nombrePersona, &ax1->nombrePersona);
+				SwapString(&ax2->direccionPersona, &ax1->direccionPersona);
+				SwapString(&ax2->fechaNacimiento, &ax1->fechaNacimiento);
+			}
+			ax2 = ax2->prx;
+		}
+		ax1 = ax1->prx;
+	}
+
+	Mostrar(per);
+
+}
+
+
+void MostrarPorNombre(persona* per) {
+	persona* ax1 = per, * ax2 = per;
+	while (ax1) {
+		ax2 = ax1->prx;
+		while (ax2) {
+			if (ax2->nombrePersona[0] < ax1->nombrePersona[0]) {
+				SwapLong(&ax2->cedula, &ax1->cedula);
+				SwapString(&ax2->telefonoPersona, &ax1->telefonoPersona);
+				SwapString(&ax2->nombrePersona, &ax1->nombrePersona);
+				SwapString(&ax2->direccionPersona, &ax1->direccionPersona);
+				SwapString(&ax2->fechaNacimiento, &ax1->fechaNacimiento);
+			}
+			ax2 = ax2->prx;
+		}
+		ax1 = ax1->prx;
+	}
+
+	Mostrar(per);
+}
+void MostrarProducto(producto* pro) {
+	producto* ax = pro;
+	cout << setw(10) << left << "CODIGO"; cout << setw(35) << left << "DESCRIPCION"; cout << setw(25) << left << "UNIDAD"; cout << setw(25) << left << "CANTIDAD"; cout << setw(25) << left << "PRECIO";
+
+	while (ax) {
+		cout << setw(10) << left << ax->codigo; cout << setw(35) << left << ax->descripcionProducto; cout << setw(25) << left << ax->unidad; cout << setw(25) << left << ax->pesoVolumen; cout << setw(25) << left << ax->precioVenta;
+		ax = ax->prx;
+	}
+	system("pause");
+}
+
+void MostrarPorDescripcion(producto* pro) {
+	producto* ax1 = pro, * ax2 = pro;
+	while (ax1) {
+		ax2 = ax1->prx;
+		while (ax2) {
+			if (ax2->descripcionProducto[0] < ax1->descripcionProducto[0]) {
+				SwapLong(&ax2->codigo, &ax1->codigo);
+				SwapString(&ax2->descripcionProducto, &ax1->descripcionProducto);
+				SwapString(&ax2->pesoVolumen, &ax1->pesoVolumen);
+				SwapString(&ax2->unidad, &ax1->unidad);
+				SwapLong(&ax2->precioVenta, &ax1->precioVenta);
+			}
+			ax2 = ax2->prx;
+		}
+		ax1 = ax1->prx;
+	}
+	MostrarProducto(pro);
+}
+
+void MostrarPorCodigo(producto* pro) {
+	producto* ax1 = pro, * ax2 = pro;
+	while (ax1) {
+		ax2 = ax1->prx;
+		while (ax2) {
+			if (ax2->codigo < ax1->codigo) {
+				SwapLong(&ax2->codigo, &ax1->codigo);
+				SwapString(&ax2->descripcionProducto, &ax1->descripcionProducto);
+				SwapString(&ax2->pesoVolumen, &ax1->pesoVolumen);
+				SwapString(&ax2->unidad, &ax1->unidad);
+				SwapLong(&ax2->precioVenta, &ax1->precioVenta);
+			}
+			ax2 = ax2->prx;
+		}
+		ax1 = ax1->prx;
+	}
+	MostrarProducto(pro);
+}
+
+void MostrarTienda(tienda* tien) {
+	if (tien) {
+		cout << setw(10) << left << "NUMERO"; cout << setw(35) << left << "NOMBRE"; cout << setw(25) << left << "DIRECCION"; cout << setw(25) << left << "TELEFONO"; cout << endl;
+		while (tien) {
+			cout << setw(10) << left << tien->numeroTienda; cout << setw(35) << left << tien->nombreTienda; cout << setw(25) << left << tien->direccionTienda; cout << setw(25) << left << tien->telefonoTienda; cout << endl;
+			tien = tien->prx;
+		}
+
+	}
+	else {
+		cout << "\nLa tienda esta vacia";
+	}
+	system("pause");
+}
+void MostrarPorNumeroT(tienda* tien) {
+	tienda* ax1 = tien, * ax2 = tien;
+	while (ax1) {
+		ax2 = ax1->prx;
+		while (ax2) {
+			if (ax2->numeroTienda < ax1->numeroTienda) {
+				SwapLong(&ax2->numeroTienda, &ax1->numeroTienda);
+				SwapString(&ax2->nombreTienda, &ax1->nombreTienda);
+				SwapString(&ax2->direccionTienda, &ax1->direccionTienda);
+				SwapString(&ax2->telefonoTienda, &ax1->telefonoTienda);
+			}
+			ax2 = ax2->prx;
+		}
+		ax1 = ax1->prx;
+	}
+	MostrarTienda(tien);
+}
+void MostrarPorNombreT(tienda* tien) {
+	tienda* ax1 = tien, * ax2 = tien;
+	while (ax1) {
+		ax2 = ax1->prx;
+		while (ax2) {
+			if (ax2->nombreTienda[0] < ax1->nombreTienda[0]) {
+				SwapLong(&ax2->numeroTienda, &ax1->numeroTienda);
+				SwapString(&ax2->nombreTienda, &ax1->nombreTienda);
+				SwapString(&ax2->direccionTienda, &ax1->direccionTienda);
+				SwapString(&ax2->telefonoTienda, &ax1->telefonoTienda);
+			}
+			ax2 = ax2->prx;
+		}
+		ax1 = ax1->prx;
+	}
+	MostrarTienda(tien);
+}
+
+void MostrarFactura(factura* fact) {
+	if (fact) {
+		factura* axf = fact;
+		cout << "\t Datos Generales\n";
+		cout << setw(10) << left << "NUMEROFACTURA"; cout << setw(45) << left << "CEDULA CLIENTE"; cout << setw(35) << left << "TOTAL"; cout << setw(35) << left << "FECHA"; cout << endl;
+		cout << setw(10) << left << axf->numeroFactura; cout << setw(45) << left << axf->cedulaCliente; cout << setw(35) << left << axf->totalFactura; cout << setw(35) << left << axf->fechaFactura; cout << endl;
+		Linea();
+
+	}
+	else {
+		cout << "\n La factura esta vacia";
+	}
+}
+
+void MostrarDetalles(detalles* det) {
+	if (det) {
+		cout << "\t Detalles\n";
+		cout << setw(10) << left << "CODIGO"; cout << setw(45) << left << "CANTIDA"; cout << setw(35) << left << "PRECIO UNITARIO"; cout << endl;
+
+		while (det!=nullptr) {
+			if (det->prx == nullptr) { break; }
+			cout << "\n\n";
+			cout << setw(10) << left << det->codigoProducto; cout << setw(45) << left << det->cantidad; cout << setw(35) << left << det->precioUnitario;
+			if (det->prx == nullptr) { break; }
+			else { det = det->prx; }
+		}
+	}
+	else {
+		return;
+	}
+}
+
+
+void ConsultarNombreT(tienda* tien, string nombre) {
+	cout << setw(10) << left << "NUMERO"; cout << setw(35) << left << "NOMBRE"; cout << setw(25) << left << "DIRECCION"; cout << setw(25) << left << "TELEFONO"; cout << endl;
+	while (tien) {
+		if (tien->nombreTienda == nombre) {
+				cout << setw(10) << left << tien->numeroTienda; cout << setw(35) << left << tien->nombreTienda; cout << setw(25) << left << tien->direccionTienda; cout << setw(25) << left << tien->telefonoTienda; cout << endl;
+		}
+		tien = tien->prx;
+	}
+}
+void ConsultarNumeroT(tienda* tien, long long int numero) {
+	cout << setw(10) << left << "NUMERO"; cout << setw(35) << left << "NOMBRE"; cout << setw(25) << left << "DIRECCION"; cout << setw(25) << left << "TELEFONO"; cout << endl;
+	while (tien) {
+		if (tien->numeroTienda == numero) {
+			cout << setw(10) << left << tien->numeroTienda; cout << setw(35) << left << tien->nombreTienda; cout << setw(25) << left << tien->direccionTienda; cout << setw(25) << left << tien->telefonoTienda; cout << endl;
+			break;
+		}
+		tien = tien->prx;
+	}
+}
+
+int ConsultarDescripcion(producto* pro, string descripcionProducto) {
+	producto* ax = pro; int band = 0;
+	while (ax) {
+		if (ax->descripcionProducto == descripcionProducto) {
+			cout << setw(10) << left << ax->codigo; cout << setw(35) << left << ax->descripcionProducto; cout << setw(25) << left << ax->unidad; cout << setw(25) << left << ax->pesoVolumen; cout << setw(25) << left << ax->precioVenta;
+			band = 1;
+		}
+		ax = ax->prx;
+	}
+	system("pause");
+	return band;
+}
+
+
+void ConsultarNombreTienda(tienda* tien, string nombreT) {
+	tienda* ax = tien; int band = 0;
+	while (ax) {
+		if (ax->nombreTienda == nombreT) {
+			if (!band) {
+				cout << setw(10) << left << "NUMERO"; cout << setw(35) << left << "NOMBRE"; cout << setw(25) << left << "DIRECCION"; cout << setw(25) << left << "TELEFONO"; cout << endl;
+			};
+			cout << setw(10) << left << ax->numeroTienda; cout << setw(35) << left << ax->nombreTienda; cout << setw(25) << left << ax->direccionTienda; cout << setw(25) << left << ax->telefonoTienda; cout << endl;
+			band = 1;
+		}
+		ax = ax->prx;
+	}
+	if (!band) { cout << "El nombre ingresado no se encuentra en la lista"; }
+	system("pause");
+}
+
+persona* ElegirPersona(persona* per, long long int cedula) {
+	persona* ax = per;
+	while (ax) {
+		if (ax->cedula == cedula) {
+			return ax;
+		}
+		ax = ax->prx;
+	}
+}
+
+
+int ConsultarCodigo(producto* pro, long long int codigo) {
+	producto* ax = pro; int band = 0;
+	while (ax) {
+		if (ax->codigo == codigo) {
+			cout << setw(10) << left << ax->codigo; cout << setw(35) << left << ax->descripcionProducto; cout << setw(25) << left << ax->unidad; cout << setw(25) << left << ax->pesoVolumen; cout << setw(25) << left << ax->precioVenta;
+			band = 1;
+		}
+		ax = ax->prx;
+	}
+	system("pause");
+	return band;
+}
+int ConsultarCedula(persona* per, long long int cedula) {
+	persona* ax = per; int b = 0;
+	while (ax) {
+		if (ax->cedula == cedula) {
+			cout << setw(10) << left << "CEDULA"; cout << setw(35) << left << "NOMBRE"; cout << setw(25) << left << "DIRECCION"; cout << setw(25) << left << "NACIMEINTO"; cout << setw(25) << left << "TELEFONO";
+			cout << "\n\n" << setw(10) << left << ax->cedula; cout << setw(35) << left << ax->nombrePersona; cout << setw(25) << left << ax->direccionPersona;
+			cout << setw(25) << left << ax->fechaNacimiento; cout << setw(25) << left << ax->telefonoPersona;
+			b = 1;
+			break;
+		}
+		ax = ax->prx;
+	}
+	if (!b) { cout << "\n\t La persona no fue encontrada en el sistema"; }
+	system("pause");
+	return b;
+}
+void MenuModifPersonas(persona** per, long long int cedula) {
+	int opc = -1;
+	
+	string nombrePersona, direccionPersona, fechaNacimiento, check, telefonoPersona;
+	while (opc !=0) {
+		do {
+			Header();
+			cout << "\t Modificar Datos de un Cliente";
+			Linea();
+			ConsultarCedula(*per, cedula);
+			Linea();
+			cout << "\n1. Nombre";
+			cout << "\n2. Direccion";
+			cout << "\n3. Fecha de Nacimiento";
+			cout << "\n4. Telefono";
+			cout << "\n Indique su opcion ->"; cin >> check;
+		} while (!ValidarInt(&check[0]));
+		opc = stoi(check);
+		switch (opc) {
+		case 0:
+			break;
+		case 1:
+			Linea();
+			cout << "Indique el nuevo nombre: "; cin.ignore(); getline(cin, nombrePersona);
+			ModificarNombrePersona(*per, cedula, nombrePersona);
+			break;
+		case 2:
+			Linea();
+			cout << "Indique la nueva direccion: "; cin.ignore(); getline(cin, direccionPersona);
+			ModificarDireccionPersona(*per, cedula, direccionPersona);
+			break;
+		case 3:
+			Linea();
+			cout << "Indique la nueva fecha de Nacimiento: "; cin.ignore(); getline(cin, fechaNacimiento);
+			ModificarNacimientoPersona(*per, cedula, fechaNacimiento);
+			break;
+		case 4:
+			Linea();
+			do {
+				cout << "Indique el numero de telefono:"; cin >> check;
+
+			} while (!ValidarLong(&check[0]));
+			telefonoPersona = check;
+			ModificarTelefonoPersona(*per, cedula, check);
+			break;
+		default: 
+			break;
+
+
+		}
+	}
+
+	
+}
+
+void EliminarPersonas(persona** per, long long int cedula) {
+	persona* ax = *per;
+	persona* e = NULL;
+	int band = 0;
+	if (*per) {
+		if ((*per)->cedula == cedula) {
+			*per = (*per)->prx;
+			e = ax;
+			ax = ax->prx;
+			delete e;
+			band = 1;
+		}
+		else {
+			while (ax->prx) {
+				if (ax->prx->cedula == cedula) {
+					e = ax->prx;
+					ax->prx = ax->prx->prx;
+					delete e;
+					band = 1;
+					break;
+				}
+				ax = ax->prx;
+			}
+		}
+	}
+	else {
+		cout << "\n La lista esta vacia ";
+	}
+	if (band) {
+		cout << "\n El cliente fuen eliminado";
+
+	}
+	else { cout << "\n El cliente no se encontraba en la lista"; }
+	system("pause");
+}
+
+int ConsultarNombre(persona* per, string nombrePersona) {
+	persona* ax = per; int b = 0;
+	if (per) {
+		while (ax) {
+			if (ax->nombrePersona == nombrePersona) {
+				cout << "\n\n" << setw(10) << left << ax->cedula; cout << setw(35) << left << ax->nombrePersona; cout << setw(25) << left << ax->direccionPersona;
+				cout << setw(25) << left << ax->fechaNacimiento; cout << setw(25) << left << ax->telefonoPersona;
+				b = 1;
+			}
+			ax = ax->prx;
+		}
+	}
+	if (!b) { cout << "No se encontro a nadie con el nombre -" << nombrePersona << "- en la lista"; }
+	return b;
+}
+void MenuPersonas(persona** per) {
+	long long int cedula;
+	string nombrePersona, direccionPersona, fechaNacimiento, check, telefonoPersona;
+	std::stringstream ss;
+	int opc =  -1, band;
+	while (opc != 0) {
+		do {
+			Header();
+			cout << "\t Menu de Personas";
+			Linea();
+			cout << "\n\t 111. Agregar Persona";
+			cout << "\n\t 112. Modificar Persona";
+			cout << "\n\t 113. Consultar por cedula";
+			cout << "\n\t 114. Consultar por nombre";
+			cout << "\n\t 115. Mostrar ordenados por cedula";
+			cout << "\n\t 116. Mostrar ordenados por nombre";
+			cout << "\n\t 117. Eliminar Persona";
+			Linea();
+			cout << "\n\t 0. Volver al Menu anterior";
+			cout << "\n\t Indique su opcion"; cin >> check;
+		} while (!ValidarInt(&check[0]));
+		opc = stoi(check);
+			switch (opc) {
+			case 111:
+				Header();
+				cout << "\t Agregar Persona";
+				Linea();
+	
+					do {
+						cout << "Cedula (debe ser un numero no mayor a 10 digitos) ->";
+						cin >> check;
+
+					} while (!ValidarLong(&check[0]));
+					cedula = stoll(check);
+					if (!ValidarCedula(cedula, *per)) {
+						cout << "\n\nLa persona ya se encuentra en el sistema \n";
+						system("pause");
+						break;
+					}
+				
+				do {
+					Header();
+					cout << "\t Agregar Persona";
+					Linea();
+					cout << "Nombre: ";
+					cin.ignore();
+					cout << " ";
+					getline(cin, nombrePersona);
+
+				} while ((nombrePersona == "") || (nombrePersona == " "));
+				
+				do {
+					Header();
+					cout << "\t Agregar Persona";
+					Linea();
+					cout << "Direccion: ";
+					cout << "  ";
+					getline(cin, direccionPersona);
+				} while ((direccionPersona == "") || (direccionPersona == " "));
+				
+				do {
+					Header();
+					cout << "\t Agregar Persona";
+					Linea();
+					cout << "Ingrese el numero telefonico: ";
+					cin >> check;
+				} while (!ValidarLong(&check[0]));
+				telefonoPersona = check;
+				do {
+					Header();
+					cout << "\tAgregar Persona";
+					Linea();
+					cout << "Ingrese la fecha de nacimiento: ";
+					cin.ignore();
+					getline(cin, fechaNacimiento);
+				} while ((fechaNacimiento == "") || (fechaNacimiento == " "));
+				Header();
+				cout << "\tAgregar Persona";
+				Linea();
+				InsertarPersona(*&per, cedula, nombrePersona, direccionPersona, telefonoPersona, fechaNacimiento);
+				OrdenarParaGuardar(*per);
+				GuardarPersona(*per);
+				cout << "Los datos han sido agregados exitosamente. ";
+				system("pause");
+				break;
+				case 112:
+					do {
+						cout << "\n Indique la cedula de la persona a buscar ->"; cin >> check;
+					} while (!ValidarLong(&check[0]));
+					cedula = stoi(check);
+					if (ValidarCedula(cedula, *per)) { cout << "No fue encontrada la cedula"; system("pause"); break; }
+					MenuModifPersonas(*&per, cedula);
+					OrdenarParaGuardar(*per);
+					GuardarPersona(*per);
+					break;
+				case 113:
+					Header();
+					if ((*per) == NULL) {
+						cout << "\nNo hay Nadie en la lista";
+						system("pause");
+						break;
+					}
+					
+					do {
+						Header();
+						cout << "\t Consultar por Cedula";
+						Linea();
+						cout << "Indique la Cedula a buscar ->";
+						cin >> check;
+
+					} while (!ValidarLong(&check[0]));
+					cedula = stoll(check);
+					ConsultarCedula(*per, cedula);
+					break;
+				case 114:
+					if ((*per) == NULL) {
+						cout << "\nNo hay Nadie en la lista";
+						system("pause");
+						break;
+					}
+					Header();
+					cout << "Consultar por nombre";
+					Linea();
+					do {
+						cout << "Indique el nombre a consultar: "; getline(cin, nombrePersona);
+					} while ((nombrePersona == "") || (nombrePersona == " "));
+				
+					ConsultarNombre(*per, nombrePersona);
+					system("pause");
+					break;
+
+				case 115:
+					Header();
+					if ((*per) == NULL) {
+						cout << "\nNo hay Nadie en la lista";
+						system("pause");
+						break;
+					}
+					cout << "Clientes ordenados por cedula: ";
+					Linea();
+					MostrarPorCedula(*per);
+					break;
+				case 116:
+					Header();
+					if ((*per) == NULL) {
+						cout << "\nNo hay Nadie en la lista";
+						system("pause");
+						break;
+					}
+					cout << "Clientes ordenados por nombre: ";
+					Linea();
+					MostrarPorNombre(*per);
+					break;
+				case 117:
+					Header();
+					if ((*per) == NULL) {
+						cout << "\nNo hay Nadie en la lista";
+						system("pause");
+						break;
+					}
+					do {
+						cout << "Indique la cedula de la persona a eliminar"; cin >> check;
+					} while (!ValidarLong(&check[0]));
+						cedula = stoll(check);
+					EliminarPersonas(*&per, cedula);
+					GuardarPersona(*per);
+					break;
+
+		}
+
+
+	}
+}
+
+
+void ModificacionProducto(producto* pro, long long int codigo, int opc, string nuevo) {
+	producto* ax = pro;
+	long long int nuevonum;
+	while (ax) {
+		if (ax->codigo == codigo) {
+			if (opc == 1) {
+				ax->descripcionProducto = nuevo;
+			}
+			if (opc == 2) {
+				ax->unidad = nuevo;
+			}
+			if (opc == 3) {
+				ax->pesoVolumen = nuevo;
+
+			}
+			if (opc == 4) {
+				nuevonum = stoll(nuevo);
+				ax->precioVenta = nuevonum;
+			}
+			break;
+		}
+		ax = ax->prx;
+	}
+}
+
+void MenuModifProductos(producto* pro, long long int codigo) {
+	int opc = -1, band;
+	string check, descripcionProducto, unidad, pesoVolumen, precioVenta;
+	while(opc!=0){
+		do {
+			Header();
+			cout << "Menu de Modificacion de productos";
+			Linea();
+			cout << setw(10) << left << "CODIGO"; cout << setw(35) << left << "DESCRIPCION"; cout << setw(25) << left << "UNIDAD"; cout << setw(25) << left << "CANTIDAD"; cout << setw(25) << left << "PRECIO";
+			Linea();
+			ConsultarCodigo(pro, codigo);
+			cout << "1. Descripcion\n";
+			cout << "2. Unidad\n";
+			cout << "3. Cantidad\n";
+			cout << "4. Precio\n";
+			cout << " Seleccione el dato a modificar: \n"; cin >> check;
+		} while (!ValidarInt(&check[0]));
+		opc = stoi(check);
+		switch (opc) {
+		case 1:
+			Linea();
+			cout << "Indique la nueva descripcion: "; cin.ignore(); getline(cin, descripcionProducto);
+			ModificacionProducto(pro, codigo, opc, descripcionProducto);
+			break;
+		case 2:
+			do {
+				Linea();
+				cout << "Indique la nueva unidad (0 para ltr, 1 para kg): "; cin >> check;
+			} while ((check != "0") && (check != "1"));
+			band = stoi(check); if (!band) { unidad = "Ltr"; } else { unidad = "Kg"; }
+			ModificacionProducto(pro, codigo, opc, unidad);
+			break;
+		case 3:
+			do {
+				Linea();
+				cout << "Indique la nueva cantidad del producto: ";
+				cin >> check;
+			} while (!ValidarFloat(&check[0]));
+			pesoVolumen = check;
+			ModificacionProducto(pro, codigo, opc, pesoVolumen);
+			break;
+		case 4:
+			do {
+				Linea();
+				cout << "Indique el nuevo precio del producto: ";
+				cin >> check;
+			} while (!ValidarFloat(&check[0]));
+			precioVenta = check;
+			ModificacionProducto(pro, codigo, opc, precioVenta);
+			break;
+		default:
+			break;
+		}
+	}
+
+}
+
+void EliminarProducto(producto** pro, long long int codigo) {
+	if (*pro) {
+		producto* e = new producto;
+		if ((*pro)->codigo == codigo) {
+			e = *pro;
+			*pro = (*pro)->prx;
+			delete e;
+			cout << "El producto fue eliminado con exito";
+			system("pause");
+			return;
+		}
+		else {
+			producto* ax = *pro;
+			while (ax->prx) {
+				if (ax->prx->codigo == codigo) {
+					e = ax->prx;
+					ax->prx = ax->prx->prx;
+					delete e;
+					cout << "El producto fue eliminado con exito";
+					system("pause");
+					return;
+				}
+				ax = ax->prx;
+			}
+		}
+	}
+	cout << "El producto no fue hallado en la lista";
+}
+
+void MenuProductos(producto** pro) {
+	long long int codigo;
+	string descripcionProducto;
+	string pesoVolumen;
+	string unidad;
+	long long int precioVenta;
+	string check;
+	char chark;
+	int opc = -1, band = 0;
+	while (opc != 0) {
+		do {
+			Header();
+			cout << "\t Menu de Productos";
+			Linea();
+			cout << "\n 211. Agregar Productos";
+			cout << "\n 212. Modificar Productos";
+			cout << "\n 213. Consultar por Descripciom";
+			cout << "\n 214. Consultar por Codigo";
+			cout << "\n 215. Mostrar ordenados segun su Codigo";
+			cout << "\n 216. Mostrar ordenados segun su descripcion";
+			cout << "\n 217. Eliminar";
+			cout << "\n Indique su opcion -> "; cin >> check;
+		} while (!ValidarInt(&check[0]));
+		opc = stoi(check);
+		switch (opc) {
+		case 211:
+			Header();
+			cout << "\t Agregar Producto";
+			Linea();
+
+			do {
+				cout << "Codigo (debe ser un numero no mayor a 10 digitos) ->";
+				cin >> check;
+
+			} while (!ValidarLong(&check[0]));
+			codigo = stoll(check);
+			if (!ValidarCodigo(codigo, *pro)) {
+				cout << "\n\nEl producto ya se encuentra en el sistema \n";
+				system("pause");
+				break;
+			}
+
+			do {
+				Header();
+				cout << "\t Agregar Producto";
+				Linea();
+				cout << "Descripcion: ";
+				cin.ignore();
+				cout << " ";
+				getline(cin, descripcionProducto);
+
+			} while ((descripcionProducto == "") || (descripcionProducto == " "));
+
+			do {
+				Header();
+				cout << "\t Agregar Producto";
+				Linea();
+				cout << "Unidad (0 para ltr, 1 para kg): "; cin >> check;
+			} while ((check != "0") && (check != "1"));
+			band = stoi(check);
+			if (!band) { unidad = "Ltr"; }
+			else { unidad = "Kg"; }
+			do {
+				Header();
+				cout << "\t Agregar Producto";
+				Linea();
+				cout << "Ingrese la cantidad de "<< unidad<< ": ";
+				cin >> check;
+			} while (!ValidarLong(&check[0]));
+			pesoVolumen = check;
+			
+			do {
+				Header();
+				cout << "\t Agregar Producto";
+				Linea();
+				cout << "Ingrese el precio de venta: ";
+				cin >> check;
+			} while (!ValidarLong(&check[0]));
+			precioVenta = stoll(check);
+			do {
+				Header();
+				cout << "\t Agregar Producto";
+				Linea();
+				cout << "\nEstos son los datos a agregar: \n";
+				cout << setw(10) << left << "CODIGO"; cout << setw(35) << left << "DESCRIPCION"; cout << setw(25) << left << "UNIDAD"; cout << setw(25) << left << "CANTIDAD"; cout << setw(25) << left << "PRECIO";
+				cout << setw(10) << left << codigo; cout << setw(35) << left << descripcionProducto; cout << setw(25) << left << unidad; cout << setw(25) << left << pesoVolumen; cout << setw(25) << left << precioVenta;
+				cout << " Desea agregarlos? (1 para si, 0 para no)-> ";
+				cin >> check;
+			} while ((check != "0") && (check != "1"));
+			band = stoi(check);
+			if (band) {
+				AgregarProducto(*&pro, codigo, descripcionProducto, pesoVolumen, unidad, precioVenta);
+				GuardarProducto(*pro);
+			}
+			else { break; }
+			
+
+			break;
+		case 212:
+			
+			do {
+				Header();
+				cout << "\tModificar datos de un Producto";
+				Linea();
+				cout << "Indique el codigo del producto a modificar-> ";
+				cin >> check;
+			} while (!ValidarLong(&check[0]));
+			codigo = stoll(check);
+			if (!ValidarCodigo(codigo, *pro)) {
+				MenuModifProductos(*pro, codigo);
+				GuardarProducto(*pro);
+			}
+			else {
+				cout << "El producto con dicho codigo no se encuentra en la lista \n";
+				system("pause");
+				break;
+			}
+			break;
+		case 213:
+			Header();
+			cout << "\t Consultar por Descripcion";
+			Linea();
+			do {
+				cout << "Ingrese la Descripcion del producto a buscar: ";
+				cin.ignore();
+				getline(cin,descripcionProducto);
+			} while ((descripcionProducto == "") || (descripcionProducto == " "));
+
+			ConsultarDescripcion(*pro, descripcionProducto);
+			system("pause");
+
+			break;
+		case 214:
+			Header();
+			cout << "\tConsultar por Codigo";
+			Linea();
+			do {
+				cout << "Ingrese el Codigo del producto a buscar: ";
+				cin >> check;
+			} while (!ValidarLong(&check[0]));
+			codigo = stoll(check);
+			ConsultarCodigo(*pro, codigo);
+			system("pause");
+			break;
+		case 215:
+			Header();
+			cout << "\t Productos Segun su Codigo";
+			Linea();
+			MostrarPorCodigo(*pro);
+			break;
+		case 216:
+			Header();
+			cout << "\t Productos Segun su Descripcion";
+			Linea();
+			MostrarPorDescripcion(*pro);
+			break;
+		case 217:
+			do {
+				Header();
+				cout << "\t Eliminar un producto";
+				Linea();
+				cout << "Indique el codigo del producto a eliminar-> "; cin >> check;
+			} while (!ValidarLong(&check[0]));
+			codigo = stoll(check);
+			EliminarProducto(*&pro, codigo);
+			GuardarProducto(*pro);
+			break;
+		}
+	}
+}
+
+void EliminarTienda(tienda** tien, long long int numero) {
+	if (*tien) {
+		tienda* e = new tienda;
+		if ((*tien)->numeroTienda == numero) {
+			e = *tien;
+			*tien = (*tien)->prx;
+			delete e;
+			return;
+		}
+		else {
+			tienda* ax = new tienda;
+			ax = *tien;
+			while (ax->prx) {
+				if (ax->prx->numeroTienda == numero) {
+					e = ax->prx;
+					ax->prx = ax->prx->prx;
+					delete e;
+				}
+				ax = ax->prx;
+
+			}
+		}
+	}
+	cout << "\nLa tienda fue eliminada exitosamente. ";
+	system("pause");
+}
+
+void ModificarTiendas(tienda* tien, long long int numero, string nuevo, int opc) {
+	while (tien) {
+		if (tien->numeroTienda == numero) {
+			if (opc == 1) {
+				tien->nombreTienda = nuevo;
+			}
+			if (opc == 2) {
+				tien->direccionTienda = nuevo;
+			}
+			if (opc == 3) {
+				tien->telefonoTienda = nuevo;
+			}
+		}
+		tien = tien->prx;
+	}
+	cout << "\n Los datos han sido modificados. ";
+}
+
+void MenuModificarTiendas(tienda** tien, long long int numero) {
+	string check;
+	long long int numeroTienda;
+	string nombreTienda;
+	string direccionTienda;
+	string telefonoTienda;
+	int opc = -1, band = -1;
+	while (opc != 0) {
+		do {
+			Header();
+			cout << "\tModificar Tiendas";
+			Linea();
+			ConsultarNumeroT(*tien, numero);
+			Linea();
+			cout << "1. Modificar nombre\n";
+			cout << "2. Modificar Direccion\n";
+			cout << "3. Modificar Telefono\n";
+			cout << "Seleccionar Opcion: ";
+			cin >> check;
+		} while (!ValidarInt(&check[0]));
+		opc = stoi(check);
+		switch (opc) {
+		case 1:
+			do {
+				Linea();
+				cout << "Indicar el nuevo nombre-> "; cin.ignore(); getline(cin, check);
+			} while ((check == "") || (check == " "));
+			ModificarTiendas(*tien, numero, check, opc);
+			break;
+		case 2:
+			do {
+				Linea();
+				cout << "Indicar la nueva direccion-> "; cin.ignore(); getline(cin, check);
+			} while ((check == "") || (check == " "));
+			ModificarTiendas(*tien, numero, check, opc);
+			break;
+		case 3:
+			do {
+				Linea();
+				cout << "Indicar el nuevo numero telefonico-> "; cin >> check;
+			} while (!ValidarLong(&check[0]));
+			telefonoTienda = check;
+			ModificarTiendas(*tien, numero, telefonoTienda, opc);
+			break;
+		default:
+			break;
+
+		}
+	}
+}
+
+void MenuTiendas(tienda** tien) {
+	string check;
+	long long int numeroTienda;
+	string nombreTienda;
+	string direccionTienda;
+	string telefonoTienda;
+	tienda* prx;
+	int opc = -1, band = -1;
+	while (opc != 0) {
+		do {
+			Header();
+			cout << "\tMenu Tiendas";
+			Linea();
+			cout << "131. Agregar Tienda\n";
+			cout << "132. Modificar Tienda\n";
+			cout << "133. Consultar por Numero\n";
+			cout << "134. Consultar por Nombre\n";
+			cout << "135. Mostrar ordenadas por Nombre\n";
+			cout << "136. Mostrar ordenadas por Numero\n";
+			cout << "137. Eliminar Tienda\n";
+			cin >> check;
+		} while (!ValidarInt(&check[0]));
+		opc = stoi(check);
+		switch (opc) {
+		case 131:
+			do {
+				Header();
+				cout << "\t Agregar Tienda";
+				Linea();
+				cout << "Indique el numero de la tienda a agregar-> ";
+				cin >> check;
+			} while (!ValidarLong(&check[0]));
+			numeroTienda = stoll(check);
+			if (!ValidarNumeroT(numeroTienda, *tien)) {
+				cout << "\n\t Una tienda con dicho numero ya se encuentra en el sistema, intentelo nuevamente. \n";
+				system("pause");
+				break;
+			}
+			else {
+				do {
+					Header();
+					cout << "Agregar Tienda";
+					Linea();
+					cout << "Indique el nombre de la tienda a agregar-> "; cout << " "; getline(cin, check);
+				} while ((check == " ") || (check == ""));
+				nombreTienda = check;
+				do {
+					Header();
+					cout << "Agregar Tienda";
+					Linea();
+					cout << "Indique la direccion de la tienda a agregar-> "; cout << " "; getline(cin, check);
+				} while ((check == " ") || (check == ""));
+				direccionTienda = check;
+				do {
+					Header();
+					cout << "Agregar Tienda";
+					Linea();
+					cout << "Indique el telefono de la tienda a agregar-> "; cin >> check;
+				} while (!ValidarLong(&check[0]));
+				telefonoTienda = check;
+				do {
+					cout << setw(10) << left << "NUMERO"; cout << setw(35) << left << "NOMBRE"; cout << setw(25) << left << "DIRECCION"; cout << setw(25) << left << "TELEFONO"; cout << endl;
+					cout << setw(10) << left << numeroTienda; cout << setw(35) << left << nombreTienda; cout << setw(25) << left << direccionTienda; cout << setw(25) << left << telefonoTienda;
+					cout << "\n\n Desea agregar estos datos? (1 para si, 0 para no)-> "; cin >> check;
+				} while ((check != "0") && (check != "1"));
+				band = stoi(check);
+				if (band) {
+					AgregarTienda(*&tien, numeroTienda, nombreTienda, direccionTienda, telefonoTienda);
+					GuardarTienda2(*tien);
+					Header();
+					cout << "Agregar Tienda";
+					Linea();
+					cout << "Los datos han sido agregados exitosamente. \n";
+				}
+				else {
+					Header();
+					cout << "Agregar Tienda";
+					Linea();
+					cout << "Los datos no fueron agregados. \n";
+				}
+				system("pause");
+			}
+			break;
+		case 132:
+			do {
+				Header();
+				cout << "Modificar Tienda";
+				Linea();
+				cout << " Indique el numero de la tienda a modificar:"; cin >> check;
+			} while (!ValidarLong(&check[0]));
+			numeroTienda = stoi(check);
+			if (ValidarNumeroT(numeroTienda, *tien)) {
+				cout << "\n No fue encontrada la tienda";
+				system("pause"); break;
+			}
+			MenuModificarTiendas(*&tien, numeroTienda);
+			GuardarTienda2(*tien);
+			break;
+		case 133:
+			Header();
+			cout << "Consultar  por Numero";
+			Linea();
+			system("pause");
+			do {
+				Header();
+				cout << "\t Consultar por numero";
+				Linea();
+				cout << "Indique el numero a consultar: "; cin >> check;
+			} while (!ValidarLong(&check[0]));
+			numeroTienda = stoll(check);
+			ConsultarNumeroT(*tien, numeroTienda);
+		
+			break;
+		case 134:
+			do {
+				Header();
+				cout << "\t Consultar Tienda por Nombre";
+				Linea();
+				cout << "Indique el nombre de la tienda a consultar-> "; getline(cin, check);
+			} while ((check == "") || (check == " "));
+			ConsultarNombreTienda(*tien, check);
+			break;
+		case 135:
+			Header();
+			cout << "\tMostrar Tiendas";
+			Linea();
+			MostrarPorNombreT(*tien);
+			break;
+		case 136:
+			Header();
+			cout << "\tMostrar Tiendas";
+			Linea();
+			MostrarPorNumeroT(*tien);
+			break;
+		case 137:
+			do {
+				Header();
+				cout << "\tEliminar Tienda";
+				Linea();
+				cout << "Indique el numero de la tienda a eliminar: "; cin >> check;
+			} while (!ValidarLong(&check[0]));
+			numeroTienda = stoll(check);
+			if (!ValidarNumeroT(numeroTienda, *tien)) {
+				EliminarTienda(*&tien, numeroTienda);
+				GuardarTienda2(*tien);
+			}
+			else {
+				cout << "\nLa tienda no se encuentra en el sistema: \n";
+			}
+			break;
+
+		}
+	}
+
+}
+
+void MenuMantenimiento(persona **per, producto **pro, tienda **tien) {
+	int opc = -1;
+	string check = "N";
+	while (opc != 0) {
+		do {
+			Header();
+			cout << "\t Menu de Mantenimiento";
+			Linea();
+			cout << "\n\t 11. Personas";
+			cout << "\n\t 12. Productos";
+			cout << "\n\t 13. Tiendas";
+			Linea();
+			cout << "\t 0. Volver al menu anterior";
+			cout << "\n\t Indique su opcion->"; cin >> check;
+		} while (!ValidarInt(&check[0]));
+		opc = stoi(check);
+		switch (opc) {
+			case 11:
+				MenuPersonas(*&per);
+				break;
+			case 12:
+				MenuProductos(*&pro);
+				break;
+			case 13:
+				MenuTiendas(*&tien);
+				break;
+			default:
+				break;
+		}
+	}
+
+}
+
+
+void MenuAgregarFacturas(persona* per, producto* pro, tienda** tien, long long int cedula, long long int numeroTienda) {
+	int opc = -1, band, flashpoint = 0, agregadacheck = 0, agregadacheck2 = 0;
+	long long int codigo, numeroFactura, M=0, N = 999999;
+	string check, fechaFactura;
+	factura* axf2 = new factura; detalles* axdet2 = new detalles; axdet2 = NULL;
+	long long int codigoProducto;
+	long long int cantidad;
+	long float precioUnitario;
+	long long int totalFactura = 0;
+	fechaFactura = ObtenerFecha();
+	while (opc != 0) {
+		do {
+			Header();
+			cout << "\t Agregar Factura";
+			Linea();
+			cout << "\n231. Datos Generales de la Factura";
+			cout << "\n232. Detalles de la Factura";
+			cout << "\n233. Mostrar Factura";
+			cout << "\n234. Crear Factura";
+			cout << "\n Indique su opcion (recuerde que debe agregar todos los detalles antes de crear la factura)-> ";
+			cin >> check;
+		} while (!ValidarInt(&check[0]));
+		opc = stoi(check);
+		switch (opc) {
+		case 231:
+			do {
+				Header();
+				cout << "\tDatos generales de la Factura";
+				Linea();
+				cout << "Se necesita un numero de factura nuevo, especifique si usted desea crearlo manualmente o aleatoriamente.\n (0 para aleatorio, 1 para manual)->";
+				cin >> check;
+			} while ((check != "0") && (check != "1"));
+			band = stoi(check);
+			if (band) {
+				if (!(*tien)->fact) {
+						do {
+							Header();
+							cout << "\tDatos generales de la Factura";
+							Linea();
+							cout << "Introduzca el numero de factura(no mayor a 10 digitos)->"; cin >> check;
+						} while (!ValidarLong(&check[0]));
+						numeroFactura = stoll(check);		
+				}
+				else {
+					do {
+						if (flashpoint) { Header(); cout << "Datos Generales de Factura"; Linea(); cout << "El numero esta repetido, ingrese otro nuevamente"; system("pause"); }
+						do {
+							Header();
+							cout << "\tDatos generales de la Factura";
+							Linea();
+							cout << "Introduzca el numero de factura(no mayor a 10 digitos)->"; cin >> check;
+						} while (!ValidarLong(&check[0]));
+						numeroFactura = stoll(check);
+						flashpoint = 1;
+					} while (!ValidarFactura(numeroFactura, (*tien)->fact));
+				}
+			}
+			else {
+				if (!(*tien)->fact) {
+					do {
+						numeroFactura = rand() % (N - M + 1) + M;
+					} while (!ValidarFactura(numeroFactura, (*tien)->fact));
+					cout << "\n El numero de la factura es-> " << numeroFactura; cout << endl; system("pause");
+				}
+				else {
+					numeroFactura = rand() % (N - M + 1) + M;
+					cout << "\n El numero de la factura es-> " << numeroFactura; cout << endl; system("pause");
+
+				}
+			}
+			if (per) {
+				do {
+					Header();
+					cout << "\t Datos Generales de la Factura";
+					Linea();
+					cout << setw(10) << left << "CEDULA"; cout << setw(35) << left << "NOMBRE"; cout << setw(25) << left << "DIRECCION"; cout << setw(25) << left << "NACIMEINTO"; cout << setw(25) << left << "TELEFONO";
+					cout << "\n\n" << setw(10) << left << per->cedula; cout << setw(35) << left << per->nombrePersona; cout << setw(25) << left << per->direccionPersona;
+					cout << setw(25) << left << per->fechaNacimiento; cout << setw(25) << left << per->telefonoPersona;
+					cout << "\n Estos son los datos del cliente, indique si desea operar con dichos datos o volver al menu para introducir otros (1 para si, 0 para no)-> "; cin >> check;
+				} while ((check != "0") && (check != "1"));
+				band = stoi(check);
+				if (!band) { break; }
+					
+			}
+			else {
+				cout << "\nEl cliente no existe, vuelva al menu anterior para proseguir con la creacion de la factura"; system("pause"); break;
+			}
+			do {
+				Header();
+				cout << "\t Datos Generales de la Factura";
+				Linea();
+				cout << "La fecha de hoy es: " << fechaFactura;
+				cout << "\n Seleccione si desea proseguir con dicha fecha o introducir otra manualmente (1 para fecha actual, 0 para la manual)-> "; cin >> check;
+			} while ((check != "0") && (check != "1"));
+			band = stoi(check);
+			if (!band) { fechaFactura = IntroducirFechaManual(); }
+			axf2->fechaFactura = fechaFactura;
+			axf2->numeroFactura = numeroFactura;
+			axf2->cedulaCliente = cedula;
+			axf2->numeroTienda = numeroTienda;
+			axf2->prx = nullptr;
+			axf2->det = NULL;
+			agregadacheck = 1;
+			break;
+		case 232:
+			flashpoint = 0;
+			do {
+				do {
+					Header();
+					cout << "\t Detalles de la Factura";
+					Linea();
+					if (flashpoint) { cout << "Debe introducir un codigo de un producto que exista\n"; }
+					cout << "Indique codigo del producto   ->"; cin >> check;
+				} while (!ValidarLong(&check[0]));
+				codigoProducto = stoll(check);
+				flashpoint = 1;
+			} while (ValidarCodigo(codigoProducto, pro));
+			
+
+			
+				do {
+					Header();
+					cout << "\t Detalles de la Factura";
+					Linea();
+					cout << "Indique la cantidad del producto   ->"; cin >> check;
+				} while (!ValidarLong(&check[0]));
+				cantidad = stoll(check);
+
+				precioUnitario = ObtenerPrecio(pro, codigoProducto);
+				do {
+					Header();
+					cout << "\t Detalles de la Factura";
+					Linea();
+					cout << setw(10) << left << "CODIGO"; cout << setw(35) << left << "CANTIDAD"; cout << setw(25) << left << "PRECIO UNITARIO"; cout << endl;
+					cout << setw(10) << left << codigoProducto; cout << setw(35) << left << cantidad; cout << setw(25) << left << precioUnitario;
+					cout << "\n Son estos los datos que desea agregar?(1 para si, 0 para no) -> "; cin >> check;
+				} while ((check != "0") && (check != "1"));
+				band = stoi(check);
+
+				if (band) {
+					
+					axdet2 = AgregarDetalles(axdet2, codigoProducto, cantidad, precioUnitario, numeroFactura, (*tien)->numeroTienda);
+					totalFactura = totalFactura + (precioUnitario * cantidad);
+					axf2->totalFactura = totalFactura;
+					agregadacheck2 = 1;
+				}
+				else {
+					cout << "\nLos detalles no fueron agregados\n"; system("pause");
+				}
+
+			break;
+		case 233:
+			Header();
+			cout << "Mostrar Factura";
+			Linea();
+			if (agregadacheck) {
+				MostrarFactura(axf2);
+				MostrarDetalles(axdet2);
+				system("pause");
+			}
+			else {
+				cout << "No se han agregado los datos generales, vuelva al menu anterior\n"; system("pause");
+			}
+			break;
+		case 234:
+			do {
+				Header();
+				cout << "\tCrear Factura";
+				Linea();
+				cout << "Desea agregar la factura a la tienda? (1 para si, 0 para no)-> "; cin >> check;
+			} while ((check != "0") && (check != "1"));
+			band = stoi(check);
+			if (!band) {
+				
+				cout << "Los datos previamente establecidos han sido borrados. \n"; system("pause"); opc = 0;
+			}
+			else {
+				if (!(*tien)->fact) {
+					(*tien)->fact = axf2;
+					(*tien)->fact->det = axdet2;
+				}
+				else {
+					axf2->prx = (*tien)->fact;
+					(*tien)->fact = axf2;
+					(*tien)->fact->det = axdet2;
+				}
+				GuardarTienda2(*tien);
+				cout << "Los datos han sido guardados. \n"; system("pause");
+				opc = 0;
+			}
+			break;
+		}
+	}
+}
+
+void MenuFacturas(persona** per, producto** pro, tienda** tien) {
+	int opc = -1, band, tiendacheck = 0, personacheck = 0;
+	long long int NumeroTienda, CedulaCliente, cedula;
+	tienda* selectedtien = new tienda;
+	persona* selectedper = new persona;
+	string check, nombrePersona, direccionPersona, telefonoPersona, fechaNacimiento;
+	while (opc != 0) {
+		do {
+			Header();
+			cout << "\tMenu de Facturas"; 
+			Linea();
+			cout << "21. Seleccionar Tienda\n";
+			cout << "22. Seleccionar Cliente\n";
+			cout << "23. Agregar Factura\n";
+			cout << "24. Modificar Factura\n";
+			cout << "25. Mostrar Datos de Factura\n";
+			cout << "26. Eliminar Factura\n";
+			cin >> check;
+		} while (!ValidarInt(&check[0]));
+		opc = stoi(check);
+		switch (opc) {
+		case 21:
+			do {
+				Header();
+				cout << "\tSeleccionar tienda";
+				Linea();
+				cout << "Indique el numero de tienda a seleccionar: "; cin >> check;
+			} while (!ValidarLong(&check[0]));
+			NumeroTienda = stoll(check);
+			if(!ValidarNumeroT(NumeroTienda, *tien)){
+				do {
+					Header();
+					cout << "\tSeleccionar tienda";
+					Linea();
+					ConsultarNumeroT(*tien, NumeroTienda);
+					cout << "\n\n Es esta la tienda deseada? (1 para si, 0 para no)-> "; cin >> check;
+				} while ((check != "0") && (check != "1"));
+				band = stoi(check);
+				if (band) {
+					selectedtien = ElegirTienda(*tien, NumeroTienda);
+					cout << "\nLa tienda fue seleccionada. \n"; system("pause");
+					tiendacheck = 1;
+				}
+				else { cout << "\n La tienda no fue seleccionada. \n"; system("pause"); }
+			}
+			else {
+				cout << "\nLa tienda no fue encontrada. \n"; system("pause");
+			}
+			break;
+		case 22:
+			if (!tiendacheck) { cout << "\n Debe seleccionar una tienda primero.\n"; system("pause"); break; }
+			do{
+				Header();
+				cout << "\tSeleccionar Cliente";
+				Linea();
+				cout << "Indique la cedula del cliente a seleccionar: "; cin >> check;
+			} while (!ValidarLong(&check[0]));
+			CedulaCliente = stoll(check);
+			if (!ValidarCedula(CedulaCliente, *per)) {
+				do {
+					Header();
+					cout << "\t Seleccionar Cliente";
+					Linea();
+					ConsultarCedula(*per, CedulaCliente); //Arrelar lo del pause
+					cout << "Son estos los datos que desea agregar? (1 para si, 0 para no)"; cin >> check;
+				} while ((check != "0") && (check != "1"));
+				band = stoi(check);
+				if (!band) {
+					cout << "Sera redirigido al menu anterior, vuelva a intentar seleccionar un cliente. \n"; system("pause");
+				}
+				else {
+					selectedper = ElegirPersona(*per, CedulaCliente);
+					personacheck = 1; break;
+				}
+			}
+			else {
+				cout << "\n El cliente no existe, sera redirigido al menu para crear un cliente.\n "; system("pause");
+				Header();
+				cout << "\t Agregar Persona";
+				Linea();
+
+				do {
+					cout << "Cedula (debe ser un numero no mayor a 10 digitos) ->";
+					cin >> check;
+
+				} while (!ValidarLong(&check[0]));
+				cedula = stoll(check);
+				if (!ValidarCedula(cedula, *per)) {
+					cout << "\n\nLa persona ya se encuentra en el sistema \n";
+					system("pause");
+					break;
+				}
+
+				do {
+					Header();
+					cout << "\t Agregar Persona";
+					Linea();
+					cout << "Nombre: ";
+					cin.ignore();
+					cout << " ";
+					getline(cin, nombrePersona);
+
+				} while ((nombrePersona == "") || (nombrePersona == " "));
+
+				do {
+					Header();
+					cout << "\t Agregar Persona";
+					Linea();
+					cout << "Direccion: ";
+					cout << "  ";
+					getline(cin, direccionPersona);
+				} while ((direccionPersona == "") || (direccionPersona == " "));
+
+				do {
+					Header();
+					cout << "\t Agregar Persona";
+					Linea();
+					cout << "Ingrese el numero telefonico: ";
+					cin >> check;
+				} while (!ValidarLong(&check[0]));
+				telefonoPersona = check;
+				do {
+					Header();
+					cout << "\tAgregar Persona";
+					Linea();
+					cout << "Ingrese la fecha de nacimiento: ";
+					cin.ignore();
+					getline(cin, fechaNacimiento);
+				} while ((fechaNacimiento == "") || (fechaNacimiento == " "));
+				do {
+					Header();
+					cout << "\tAgregar Persona";
+					Linea();
+					cout << "Desea agregar estos datos? (1 para si, 0 para no)\n ";
+					cout << setw(10) << left << "CEDULA"; cout << setw(35) << left << "NOMBRE"; cout << setw(25) << left << "DIRECCION"; cout << setw(25) << left << "NACIMEINTO"; cout << setw(25) << left << "TELEFONO";
+					cout << "\n\n" <<  setw(10) << left << cedula; cout << setw(35) << left << nombrePersona; cout << setw(25) << left << direccionPersona;
+					cout << setw(25) << left << fechaNacimiento; cout << setw(25) << left << telefonoPersona;
+					cin >> check;
+				} while ((check != "0") && (check != "1"));
+				band = stoi(check);
+				if (band) {
+					InsertarPersona(*&per, cedula, nombrePersona, direccionPersona, telefonoPersona, fechaNacimiento);
+					OrdenarParaGuardar(*per);
+					GuardarPersona(*per);
+					personacheck = 1;
+					selectedper = ElegirPersona(*per, cedula);
+					cout << "Los datos han sido agregados exitosamente y el cliente ha sido seleccionado";
+					system("pause");
+				}
+				else {
+					cout << "\n Los datos no fueron agregados, vuelva al menu anterior para poder ingresarlos \n"; system("pause");
+				}
+				
+			}
+			break;
+		case 23:
+			if ((!personacheck) || (!tiendacheck)) { cout << "Seleccione primero tanto la tienda como el cliente a trabajar"; system("pause"); break; }
+			MenuAgregarFacturas(selectedper, *pro, &selectedtien, selectedper->cedula, selectedtien->numeroTienda);
+			break;
+		case 24:
+			break;
+		case 25:
+			break;
+		case 26:
+			break;
+		}
+	}
+
+}
+
+void main() {
+	//Hazl como una lista separada
+	persona* per = NULL;
+	producto* pro = NULL;
+	tienda* tien = NULL;
+	LeerPersona(&per);
+	LeerProducto(&pro);
+	LeerTienda2(&tien);
+	int opc = -1;
+	string check = "N";
+	string fecha = ObtenerFecha();
+
+	while(opc!=0){
+		do {
+			system("CLS");
+			Header();
+			cout << "\t Integrantes:"; cout << "\n\t Arturo Pinto (30.495.970) "; cout << " \t Cristina Carnevali ()";
+			Linea();
+			cout << "\tFecha de hoy: " << fecha;
+			Linea();
+			cout << "\t Menu Principal";
+			Linea();
+			cout << "\n\t 1. Mantenimiento\n\n";
+			cout << "\n\t 2. Facturas\n\n";
+			cout << "\n\t 3. Gerencia\n\n";
+			cout << "\n Seleccione su opcion ->"; cin >> check;
+		} while (!ValidarInt(&check[0]));
+		opc = stoi(check);
+		switch (opc) {
+			case 1:
+				MenuMantenimiento(&per, &pro, &tien);
+				break;
+			case 2:
+				MenuFacturas(&per, &pro, &tien);
+				break;
+			case 3:
+				break;
+		}
+		
+	}
+	
+
+}
